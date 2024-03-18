@@ -5,7 +5,7 @@ from rest_framework import status
 pytestmark = pytest.mark.django_db
 
 
-def test_can_create_user(api_client):
+def test_can_create_user_and_fetch_token(api_client):
     user_data = {
         "username": "testuser",
         "email": "testuser@example.com",
