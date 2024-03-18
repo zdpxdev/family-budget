@@ -3,10 +3,12 @@ from django.db.models import Q
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .filters import CategoryFilter
 from .models import Budget, Category, Transaction
+from .permissions import HasBudgetAccess
 from .serializers import (
     BudgetSerializer,
     CategorySerializer,
@@ -18,6 +20,7 @@ from .serializers import (
 class BudgetViewSet(viewsets.ModelViewSet):
     queryset = Budget.objects.all()
     serializer_class = BudgetSerializer
+    permission_classes = [IsAuthenticated & HasBudgetAccess]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -30,11 +33,11 @@ class BudgetViewSet(viewsets.ModelViewSet):
         ).distinct()
 
     @action(detail=True, methods=["post"])
-    def share(self, request, pk=None):
+    def share(self, request, pk):
         serializer = ShareWithSerializer(data=request.data)
         if serializer.is_valid():
             users = User.objects.filter(
-                username__in=serializer.validated_data.get("usernames", [])
+                email__in=serializer.validated_data.get("emails", [])
             )
             if users.exists():
                 obj = get_object_or_404(Budget, id=pk)
@@ -60,6 +63,7 @@ class CategoryViewSet(
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated & HasBudgetAccess]
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:

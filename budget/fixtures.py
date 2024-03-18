@@ -1,5 +1,6 @@
 import factory
 from django.contrib.auth.models import User
+from factory import post_generation
 
 from .models import TRANSACTION_TYPE_CHOICES, Budget, Category, Transaction
 
@@ -10,7 +11,11 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     username = factory.Sequence(lambda n: f"username{n}")
     email = factory.LazyAttribute(lambda obj: f"{obj.username}@example.com")
-    _password = factory.PostGenerationMethodCall("set_password", "password")
+    password = "password"
+
+    @post_generation
+    def set_password(obj, create, extracted, **kwargs):
+        obj.set_password(obj.password)
 
 
 class CategoryFactory(factory.django.DjangoModelFactory):

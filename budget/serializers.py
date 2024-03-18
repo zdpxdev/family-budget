@@ -16,10 +16,10 @@ class BudgetSerializer(ModelSerializer):
         model = Budget
         fields = ("id", "name", "transactions")
 
-    entries = serializers.SerializerMethodField()
+    transactions = serializers.SerializerMethodField()
 
     def get_transactions(self, obj):
-        return TransactionSerializer(obj.entries.all(), many=True).data
+        return TransactionSerializer(obj.transactions.all(), many=True).data
 
 
 class CategorySerializer(ModelSerializer):
@@ -35,4 +35,4 @@ class TransactionSerializer(ModelSerializer):
 
 
 class ShareWithSerializer(Serializer):
-    emails: ListSerializer[Never] = ListSerializer(child=EmailField(), required=True)
+    emails = ListSerializer(child=EmailField(), required=True)
