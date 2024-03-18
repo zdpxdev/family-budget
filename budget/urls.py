@@ -1,8 +1,13 @@
+from django.urls import path
+from rest_framework.authtoken.views import obtain_auth_token
 from rest_framework.routers import DefaultRouter
 
 from . import views
 
-urlpatterns = []
+urlpatterns = [
+    path("users/register/", views.RegisterUserView.as_view(), name="register"),
+    path("users/auth-token/", obtain_auth_token, name="token"),
+]
 router = DefaultRouter()
 
 router.register(r"budgets", views.BudgetViewSet, basename="budget")

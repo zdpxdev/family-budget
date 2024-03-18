@@ -1,8 +1,9 @@
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.db.models import Q
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.generics import get_object_or_404
+from rest_framework.generics import CreateAPIView, get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -14,6 +15,7 @@ from .serializers import (
     CategorySerializer,
     ShareWithSerializer,
     TransactionSerializer,
+    UserSerializer,
 )
 
 
@@ -76,3 +78,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
             Q(budget__user=self.request.user)
             | Q(budget__shared_with__in=[self.request.user])
         ).distinct()
+
+
+class RegisterUserView(CreateAPIView):
+    model = get_user_model()
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = UserSerializer
