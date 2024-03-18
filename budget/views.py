@@ -6,9 +6,9 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .filters import CategoryFilter
+from .filters import CategoryFilter, TransactionFilter
 from .models import Budget, Category, Transaction
-from .permissions import HasBudgetAccess
+from .permissions import HasBudgetAccess, HasTransactionAccess
 from .serializers import (
     BudgetSerializer,
     CategorySerializer,
@@ -28,9 +28,13 @@ class BudgetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return Budget.objects.none()
-        return Budget.objects.filter(
-            Q(user=self.request.user) | Q(shared_with__in=[self.request.user])
-        ).distinct()
+        return (
+            Budget.objects.filter(
+                Q(user=self.request.user) | Q(shared_with__in=[self.request.user])
+            )
+            .prefetch_related("transactions")
+            .distinct()
+        )
 
     @action(detail=True, methods=["post"])
     def share(self, request, pk):
@@ -57,13 +61,13 @@ class CategoryViewSet(
 ):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-
     filterset_class = CategoryFilter
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
-    permission_classes = [IsAuthenticated & HasBudgetAccess]
+    permission_classes = [IsAuthenticated & HasTransactionAccess]
+    filterset_class = TransactionFilter
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:

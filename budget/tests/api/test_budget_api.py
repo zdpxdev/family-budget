@@ -2,16 +2,17 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
-from budget.fixtures import BudgetFactory, UserFactory
+from budget.fixtures import BudgetFactory, TransactionFactory, UserFactory
 
 from ...models import Budget
 
 pytestmark = pytest.mark.django_db
 
+BUDGET_LIST_URL = reverse("budget-list")
+
 
 def test_list_budget_not_authenticated(api_client):
-    url = reverse("budget-list")
-    response = api_client.get(url)
+    response = api_client.get(BUDGET_LIST_URL)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -21,13 +22,11 @@ def test_list_budget_permissions(api_client):
     budgets_count = 10
     BudgetFactory.create_batch(size=budgets_count, user=user_with_budgets)
 
-    url = reverse("budget-list")
-
     api_client.force_login(user_without_budgets)
-    user_without_budgets_response = api_client.get(url)
+    user_without_budgets_response = api_client.get(BUDGET_LIST_URL)
 
     api_client.force_login(user_with_budgets)
-    user_with_budgets_response = api_client.get(url)
+    user_with_budgets_response = api_client.get(BUDGET_LIST_URL)
 
     assert user_without_budgets_response.status_code == status.HTTP_200_OK
     assert user_without_budgets_response.data["count"] == 0
@@ -38,10 +37,9 @@ def test_list_budget_permissions(api_client):
 def test_create_budget(api_client):
     user = UserFactory.create()
     api_client.force_login(user)
-    url = reverse("budget-list")
     data = {"name": "My budget"}
 
-    response = api_client.post(url, data)
+    response = api_client.post(BUDGET_LIST_URL, data)
 
     assert response.status_code == status.HTTP_201_CREATED
     assert Budget.objects.filter(user=user, name=data["name"]).exists()
@@ -98,3 +96,14 @@ def test_share_budget(api_client):
     api_client.force_authenticate(budget_collaborator)
     response = api_client.get(reverse("budget-detail", args=(budget.id,)))
     assert response.status_code == status.HTTP_200_OK
+
+
+def test_db_queries_constant(api_client, django_assert_max_num_queries):
+    # Ensure there is no issue with N+1 queries
+    user = UserFactory.create()
+
+    TransactionFactory.create_batch(size=100, budget__user=user)
+    api_client.force_login(user)
+
+    with django_assert_max_num_queries(5):
+        api_client.get(BUDGET_LIST_URL)
